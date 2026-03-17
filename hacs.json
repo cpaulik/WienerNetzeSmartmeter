@@ -1,7 +1,5 @@
 {
   "name": "wnsm",
   "render_readme": true,
-  "zip_release": true,
-  "filename": "wnsm.zip",
   "country": "AT"
 }
