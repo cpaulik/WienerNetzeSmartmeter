@@ -316,19 +316,24 @@ class Importer:
 
         bewegungsdaten = await self.async_smartmeter.get_bewegungsdaten(self.zaehlpunkt, start, end, self.granularity)
         _LOGGER.debug(f"Mapped historical data: {bewegungsdaten}")
-        if bewegungsdaten['unitOfMeasurement'] is None:
-            _LOGGER.warning("Unit of measurement is None! Aborting import...")
-            return None
-        elif bewegungsdaten['unitOfMeasurement'] == 'WH':
+        unit = bewegungsdaten['unitOfMeasurement']
+        if unit is None:
+            # The unit is read from the API's "descriptor" object, which is no
+            # longer always present. The bewegungsdaten endpoint reports values
+            # in KWH, so fall back to that instead of aborting the import.
+            _LOGGER.debug("Unit of measurement is None (missing descriptor), assuming KWH")
+            unit = 'KWH'
+        if unit == 'WH':
             factor = 1e-3
-        elif bewegungsdaten['unitOfMeasurement'] == 'KWH':
+        elif unit == 'KWH':
             factor = 1.0
         else:
-            raise NotImplementedError(f'Unit {bewegungsdaten["unitOfMeasurement"]}" is not yet implemented. Please report!')
+            raise NotImplementedError(f'Unit {unit}" is not yet implemented. Please report!')
 
         dates = defaultdict(Decimal)
-        if 'values' not in bewegungsdaten:
-            raise ValueError("WienerNetze does not report historical data (yet)")
+        if not bewegungsdaten.get('values'):
+            _LOGGER.debug(f"WienerNetze does not report historical data (yet) for batch starting at {start}")
+            return None
         total_consumption = sum([v.get("wert", 0) for v in bewegungsdaten['values']])
         # Can actually check, if the whole batch can be skipped.
         if total_consumption == 0:

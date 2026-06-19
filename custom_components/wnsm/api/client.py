@@ -633,6 +633,10 @@ class Smartmeter:
             query=query,
             extra_headers=extra,
         )
-        if data["descriptor"]["zaehlpunktnummer"] != zaehlpunkt:
+        # The API used to return a "descriptor" object we could use to verify the
+        # returned data matches the requested zaehlpunkt. It is no longer always
+        # present, so only validate when it is.
+        descriptor = data.get("descriptor")
+        if descriptor is not None and descriptor.get("zaehlpunktnummer") != zaehlpunkt:
             raise SmartmeterQueryError("Returned data does not match given zaehlpunkt!")
         return data
