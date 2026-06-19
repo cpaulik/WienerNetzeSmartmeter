@@ -619,7 +619,10 @@ class Smartmeter:
             "rolle": rolle,
             "zeitpunktVon": date_from.strftime("%Y-%m-%dT%H:%M:00.000Z"), # we catch up from the exact date of the last import to compensate for time shift
             "zeitpunktBis": date_until.strftime("%Y-%m-%dT23:59:59.999Z"),
-            "aggregat": aggregat or "NONE"
+            "aggregat": aggregat or "NONE",
+            # The API now requires this parameter; without it the endpoint
+            # returns HTTP 400 ("Required parameter 'wandler' is not present.").
+            "wandler": "false",
         }
 
         extra = {

@@ -393,6 +393,26 @@ def test_bewegungsdaten_daily_feeding(requests_mock: Mocker):
     assert 10 == len(hist['values'])
     
 @pytest.mark.usefixtures("requests_mock")
+def test_bewegungsdaten_sends_wandler_param(requests_mock: Mocker):
+    """Regression: the API rejects the request with HTTP 400
+    ("Required parameter 'wandler' is not present.") unless the 'wandler' query
+    parameter is sent. Without it, translate_dict mapped the error body into
+    {'values': None}, which crashed the importer."""
+    z = zaehlpunkt_response([enabled(zaehlpunkt())])[0]
+    dateFrom = dt.datetime(2023, 4, 21, 00, 00, 00, 0)
+    dateTo = dt.datetime(2023, 5, 1, 23, 59, 59, 999999)
+    zpn = z["zaehlpunkte"][0]['zaehlpunktnummer']
+    expect_login(requests_mock)
+    expect_bewegungsdaten(requests_mock, z["geschaeftspartner"], zpn, dateFrom, dateTo, const.ValueType.QUARTER_HOUR, values_count=COUNT)
+    expect_zaehlpunkte(requests_mock, [enabled(zaehlpunkt())])
+
+    smartmeter().login().bewegungsdaten(None, dateFrom, dateTo)
+
+    bewegungs_requests = [r for r in requests_mock.request_history if "bewegungsdaten" in r.url]
+    assert len(bewegungs_requests) == 1
+    assert bewegungs_requests[0].qs.get("wandler") == ["false"]
+
+@pytest.mark.usefixtures("requests_mock")
 def test_bewegungsdaten_no_dates_given(requests_mock: Mocker):
     z = zaehlpunkt_response([enabled(zaehlpunkt())])[0]
     dateTo = dt.date.today()
